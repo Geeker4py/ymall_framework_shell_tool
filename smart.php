@@ -46,6 +46,16 @@ function makeCommand($argv){
 				createController($project_name,$sname);
 			}
 		    break;
+		case in_array($argv[1],$project) && ($argv[2]=="update:controller" || $argv[2]=="update:c") && preg_match("/[a-zA-Z0-9]/",$argv[3]) && isset($argv[2]) && isset($argv[3]):
+			$project_name=$argv[1];
+			$sname=$argv[3];
+			unset($argv[0]);
+			unset($argv[1]);
+			unset($argv[2]);
+			unset($argv[3]);
+			$func_array=array_values($argv);
+			updateController($project_name,$sname,$func_array);
+		    break;    
 		case in_array($argv[1],$project) && isset($argv[2]) && preg_match("/scaffold:[a-zA-Z0-9]/",$argv[2]):
 		    scaffold($argv);
 		    break;   
@@ -175,7 +185,7 @@ use app\common\util\SubPages;
 
 class {$name}Controller extends {$extends_controller}{
 {$func_string}
-}
+
 EOF;
 
 		$msg_array = array();
@@ -207,6 +217,42 @@ EOF;
 		}
 
 
+	}
+}
+
+function updateController($project,$name,$func=array()){
+	checkUpper($name);
+	$file_name   = strtolower($name);
+	$func_string = "";
+	$request  ='$request';
+	$response ='$response';	
+
+	$msg_array = array();
+	if (file_exists($project.DIRECTORY_SEPARATOR.CONTROLLER_NAME.DIRECTORY_SEPARATOR.$file_name.CONTROLLER_NAME.".php")) { 
+		$file = $project.DIRECTORY_SEPARATOR.CONTROLLER_NAME.DIRECTORY_SEPARATOR.$file_name.CONTROLLER_NAME.".php";
+
+		$controller_data=file_get_contents($file);
+		foreach($func as $key=>$val){
+			 $func_line="function ".$val."("; 
+			 if(!strstr($controller_data,$func_line)){ 
+			 	$func_string.="    "."public function {$val}({$request}, {$response}){}"."\r\n\r\n";
+			 }else{ 
+			 	_error("This function {$val} is already exists !");
+			 	exit();
+			 }			
+		}
+		
+		$handle = fopen($file, "a+"); 
+		chmod($project.DIRECTORY_SEPARATOR.CONTROLLER_NAME,0777);
+		if($handle){ 
+			$cont = fwrite($handle, $func_string);
+			if($cont === FALSE){  
+		        _error("Cannot write to {$name}controller file , Please check your permissions !");  
+		    }else{ 
+		    	$msg_array[]="update file : {$file}";
+		    	_success($msg_array);
+		    }
+		}
 	}
 }
 
